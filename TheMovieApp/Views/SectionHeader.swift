@@ -31,15 +31,11 @@ class SectionHeader: UICollectionReusableView {
         addSubview(stackView)
 
         NSLayoutConstraint.activate([
-//            separator.heightAnchor.constraint(equalToConstant: 1),
-
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             stackView.topAnchor.constraint(equalTo: topAnchor),
             stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10)
         ])
-
-//        stackView.setCustomSpacing(10, after: separator)
     }
 
     required init?(coder aDecoder: NSCoder) {

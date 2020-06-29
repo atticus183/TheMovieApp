@@ -10,7 +10,8 @@ import Foundation
 
 struct DateFormatters {
     //for converting date strings in the following format:  yyyy-mm-dd
-    static func toDate(from stringDate: String) -> Date? {
+    static func toDate(from stringDate: String?) -> Date? {
+        guard let stringDate = stringDate else { return nil }
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         

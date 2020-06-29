@@ -8,13 +8,14 @@
 
 import Foundation
 
+
 enum MovieStatus: String, CaseIterable {
     case upcoming = "Upcoming"
     case popular = "Popular"
     case nowPlaying = "Now Playing"
 }
 
-struct Genre: Codable {
+struct Genre: Codable, Hashable {
     let id: Int
     let name: String
     
@@ -43,64 +44,73 @@ struct Genre: Codable {
         
         return genres[id] ?? "Not Found"
     }
-    
-    static func retrieveGenreTextString(ids: [Int]?) -> String {
-        guard let ids = ids else { return "Genre not available"}
-        var genres = [String]()
-        ids.forEach({
-            genres.append(Genre.retrieveGenreByID(id: $0))
-        
-        })
-        
-        return genres.joined(separator: ", ")
-    }
 }
 
-//Upcoming Movie, Now Playing, Popular model
+
+//Conform to Hashable so its objects can be used with the DiffableDatasource API
 struct Movie: Codable, Hashable {
-    let popularity: Double
-    let voteCount: Int
-    let video: Bool
-    let posterPath: String?
-    let id: Int
-    let adult: Bool
-    let backdropPath: String?  //can be null
-    let originalLanguage: String
-    let originalTitle: String?
-    let genreIds: [Int]
-    let title: String
-    let voteAverage: Double
-    let overview: String
-    let releaseDate: String  //used MovieReleaseDate instead
-}
-
-//MARK: Full Movie Detail Model
-struct MovieDetails: Codable {
-    let adult: Bool
+    let id: Int?
+    let adult: Bool?
     let backdropPath: String?
     let belongsToCollection: Collection?
-    let budget: Int
-    let genres: [Genre]
+    let budget: Int?
+    let genres: [Genre]?
+    let genreIds: [Int]?
     let homepage: String?
-    let id: Int
     let imdbId: String?
-    let originalLanguage: String
-    let originalTitle: String
+    let originalLanguage: String?
+    let originalTitle: String?
     let overview: String?
-    let popularity: Float
+    let popularity: Double?
     let posterPath: String?
-    let productionCompanies: [ProductionCompany]
-    let productionCountries: [ProductionCountry]
-    let releaseDate: String
-    let revenue: Int
+    let productionCompanies: [ProductionCompany]?
+    let productionCountries: [ProductionCountry]?
+    let releaseDate: String?
+    let revenue: Int?
     let runtime: Int?
-    let spokenLanguages: [SpokenLanguage]
-    let status: String
+    let spokenLanguages: [SpokenLanguage]?
+    let status: String?
     let tagline: String?
-    let title: String
-    let video: Bool
-    let voteAverage: Float
-    let voteCount: Int
+    let title: String?
+    let video: Bool?
+    let voteAverage: Float?
+    let voteCount: Int?
+    
+    var genresString: String {
+        if let genres = genres, genres.count > 0 {
+            return genres.map({ $0.name }).joined(separator: ", ")
+        }
+        
+        if let genreIds = genreIds, genreIds.count > 0 {
+            let genres = genreIds.map({ Genre.retrieveGenreByID(id: $0) }).joined(separator: ", ")
+            return genres
+        }
+        
+        return "Genre Not Available"
+    }
+    
+    var releaseDateFormatted: String {
+        return DateFormatters.changeStringDateFormat(from: self.releaseDate ?? "")
+    }
+    
+    var releaseDateObject: Date? {
+        return DateFormatters.toDate(from: self.releaseDate)
+    }
+    
+    func retrieveImgURLString(with size: TMDbManager.ImgSize) -> String {
+           let backDrop = self.backdropPath ?? ""
+           let posterPath = self.posterPath ?? ""
+           
+           if size.rawValue.contains("backdrop") {
+               return TMDbManager.imgBaseURL + "\(size.sizeString)/\(backDrop)"
+           } else if size.rawValue.contains("logo") {
+               return ""
+           } else if size.rawValue.contains("poster") {
+               return TMDbManager.imgBaseURL + "\(size.sizeString)/\(posterPath)"
+           } else {
+               return ""
+           }
+       }
 }
 
 struct MovieReleaseDateResult: Codable {
@@ -140,43 +150,31 @@ struct ReleaseDate: Codable {
     }
 }
 
-struct Collection: Codable {}
+struct Collection: Codable, Hashable {}
 
-struct ProductionCompany: Codable {
+struct ProductionCompany: Codable, Hashable {
     let id: Int
     let logoPath: String?
     let name: String
     let originCountry: String
 }
 
-struct ProductionCountry: Codable {
+struct ProductionCountry: Codable, Hashable {
     let iso31661: String
     let name: String
 }
 
-struct SpokenLanguage: Codable {
+struct SpokenLanguage: Codable, Hashable {
     let iso6391: String
     let name: String
 }
 
-//struct ProductionCompany: Codable {
-//    let id: Int
-//    let logoPath: String
-//    let name: String
-//    let originCompany: String
-//}
-
-//struct ProductionCountry: Codable {
-//    let iso_3166_1: String
-//    let name: String
-//}
-
 struct UpcomingResults: Codable {
     let results: [Movie]?
-    let page: Int
-    let totalResults: Int
-    let dates: ResultDates
-    let totalPages: Int
+//    let page: Int?
+//    let totalResults: Int?
+    let dates: ResultDates?
+//    let totalPages: Int?
 }
 
 struct PopularResults: Codable {
@@ -194,33 +192,14 @@ struct NowPlayingResults: Codable {
 }
 
 struct ResultDates: Codable {
-    let maximum: String
-    let minimum: String
+    let maximum: String?
+    let minimum: String?
 }
 
 //MARK: Searching for movie model
 struct MovieSearchResults: Codable {
     let page: Int?
-    let results: [SearchedMovie]?
+    let results: [Movie]?
     let totalResults: Int?
     let totalPages: Int?
 }
-
-struct SearchedMovie: Codable, Hashable {
-    let posterPath: String?
-    let adult: Bool?
-    let overview: String?
-    let releaseDate: String?
-    let genreIds: [Int]?
-    let id: Int?
-    let originalTitle: String?
-    let originalLanguage: String?
-    let title: String?
-    let backdropPath: String?
-    let popularity: Double?
-    let voteCount: Int?
-    let video: Bool?
-    let voteAverage: Double?
-}
-
-

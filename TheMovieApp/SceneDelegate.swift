@@ -12,7 +12,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
-
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
@@ -25,13 +24,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let layout = UICollectionViewFlowLayout()
         window?.rootViewController = UINavigationController(rootViewController: MediaCVC(collectionViewLayout: layout))
         window?.makeKeyAndVisible()
+
+        if let shortcutItem = connectionOptions.shortcutItem {
+            QuickActions.performAction(for: shortcutItem, in: window)
+        }
+        
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
         // Called as the scene is being released by the system.
         // This occurs shortly after the scene enters the background, or when its session is discarded.
         // Release any resources associated with this scene that can be re-created the next time the scene connects.
-        // The scene may re-connect later, as its session was not neccessarily discarded (see `application:didDiscardSceneSessions` instead).
+        // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
@@ -58,38 +62,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func windowScene(_ windowScene: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
         
         //Source: https://medium.com/better-programming/add-home-screen-quick-actions-in-swift-and-ios-13-71615f805eff
+        //https://medium.com/swlh/create-dynamic-custom-home-screen-quick-actions-for-your-ios-apps-using-swiftui-9e6f9b19c8db
         
-        switch shortcutItem.type {
-        case "com.joshr.TheMovieApp.search":
-            let searchVC = SearchVC()
-            searchVC.modalPresentationStyle = .fullScreen
-            //                self.present(searchVC, animated: true, completion: nil)
-            self.window!.rootViewController?.present(searchVC, animated: true, completion: nil)
-            break
-        case "com.mediumproject.Love":
-            // Using storyboard
-//            let mainStoryboard = UIStoryboard.init(name: "Main", bundle: Bundle.main)
-//            let reqVC = mainStoryboard.instantiateViewController(withIdentifier: "SecondViewController") as! SecondViewController
-//            if let homeVC = self.window?.rootViewController as? UINavigationController {
-//                // Push the new view controller
-//                homeVC.pushViewController(reqVC, animated: true)
-//                // Call the method
-//                reqVC.showMessage()
-//            }
-            break
-        case "com.mediumproject.Bookmark":
-            // View controller instantiate programmatically, without storyboard
-//            let reqVC = SecondViewController()
-//            if let homeVC = self.window?.rootViewController as? UINavigationController {
-//            // Push the new view controller
-//            homeVC.pushViewController(reqVC, animated: true)
-//            // Call the method
-//            reqVC.showMessage()
-//        }
-            break
-        default:
-            break
-        }
+        QuickActions.performAction(for: shortcutItem, in: window)
     }
 
 

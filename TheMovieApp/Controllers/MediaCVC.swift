@@ -13,6 +13,8 @@ class MediaCVC: UICollectionViewController {
     
     var dataSource: UICollectionViewDiffableDataSource<MovieStatus, Movie>?
     
+    lazy var tmdbManager = TMDbManager()
+    
     let dispatchGroup = DispatchGroup()
     
     var upcomingMovies: [Movie]?
@@ -79,44 +81,33 @@ class MediaCVC: UICollectionViewController {
     private func downloadUpcomingMovies() {
         dispatchGroup.enter()
         print("Upcoming group enter")
-        let url = URL(string: "https://api.themoviedb.org/3/movie/upcoming?api_key=\(TMdbAPIKey.KEY)&language=en-US&page=1&region=US")
-        let jsonParser = JSONParser()
-        jsonParser.decodeSingle(of: UpcomingResults.self, from: url!) { [weak self] (result) in
+        tmdbManager.tmdbRequest(UpcomingResults.self, endPoint: .getUpcoming) { [weak self] (result) in
             switch result {
-            case .failure(let error):
-                if error is DataError {
-                    print(error)
-                } else {
-                    print(error.localizedDescription)
-                }
-                print(error.localizedDescription)
-            case .success(let res):
-                self?.upcomingMovies = res.results
+            case .success(let result):
+                self?.upcomingMovies = result.results
                 print("Upcoming group leave")
                 self?.dispatchGroup.leave()
+            case .failure(let error):
+                print("Upcoming error: \(error.errorMessage)")
             }
         }
+        
+        
+        
     }
     
     private func downloadPopularMovies() {
         //MARK: Retrieve Popular Movies
         dispatchGroup.enter()
         print("popular group enter")
-        let popularMoviesUrl = URL(string: "https://api.themoviedb.org/3/movie/popular?api_key=\(TMdbAPIKey.KEY)&language=en-US&page=1&region=US")
-        let jsonParser = JSONParser()
-        jsonParser.decodeSingle(of: PopularResults.self, from: popularMoviesUrl!) { [weak self] (result) in
+        tmdbManager.tmdbRequest(PopularResults.self, endPoint: .getPopular) { [weak self] (result) in
             switch result {
-            case .failure(let error):
-                if error is DataError {
-                    print(error)
-                } else {
-                    print(error.localizedDescription)
-                }
-                print(error.localizedDescription)
-            case .success(let res):
-                self?.popularMovies = res.results
-                print("popular group leave")
+            case .success(let result):
+                self?.popularMovies = result.results
+                print("Popular group leave")
                 self?.dispatchGroup.leave()
+            case .failure(let error):
+                print("Upcoming error: \(error.errorMessage)")
             }
         }
     }
@@ -125,21 +116,14 @@ class MediaCVC: UICollectionViewController {
         //MARK: Retrieve Now Playing Movies
         dispatchGroup.enter()
         print("now playing group enter")
-        let nowPlayingMoviesUrl = URL(string: "https://api.themoviedb.org/3/movie/now_playing?api_key=\(TMdbAPIKey.KEY)&language=en-US&page=1&region=US")
-        let jsonParser = JSONParser()
-        jsonParser.decodeSingle(of: NowPlayingResults.self, from: nowPlayingMoviesUrl!) { [weak self] (result) in
+        tmdbManager.tmdbRequest(NowPlayingResults.self, endPoint: .getNowPlaying) { [weak self] (result) in
             switch result {
-            case .failure(let error):
-                if error is DataError {
-                    print(error)
-                } else {
-                    print(error.localizedDescription)
-                }
-                print(error.localizedDescription)
-            case .success(let res):
-                self?.nowPlayingMovies = res.results
-                print("now playing group leave")
+            case .success(let result):
+                self?.nowPlayingMovies = result.results
+                print("Now Playing group leave")
                 self?.dispatchGroup.leave()
+            case .failure(let error):
+                print("Upcoming error: \(error.errorMessage)")
             }
         }
     }
@@ -159,7 +143,7 @@ class MediaCVC: UICollectionViewController {
                 return nil
             }
             
-            sectionHeader.title.text = "Not Assgined"
+            sectionHeader.title.text = "Not Assigned"
             
             guard let firstMovie = self?.dataSource?.itemIdentifier(for: indexPath) else { return sectionHeader }
             guard let section = self?.dataSource?.snapshot().sectionIdentifier(containingItem: firstMovie) else { return sectionHeader }
@@ -174,13 +158,13 @@ class MediaCVC: UICollectionViewController {
         var snapshot = NSDiffableDataSourceSnapshot<MovieStatus, Movie>()
         snapshot.appendSections(movieStatues)
         
-        guard let upcomingMovies = upcomingMovies?.sorted(by: { $0.releaseDate < $1.releaseDate }) else { return }
+        guard let upcomingMovies = upcomingMovies?.sorted(by: { $0.releaseDateObject! < $1.releaseDateObject! }) else { return }
         snapshot.appendItems(upcomingMovies, toSection: .upcoming)
         
-        guard let popularMovies = popularMovies?.sorted(by: { $0.releaseDate > $1.releaseDate }) else { return }
+        guard let popularMovies = popularMovies?.sorted(by: { $0.releaseDateObject! > $1.releaseDateObject! }) else { return }
         snapshot.appendItems(popularMovies, toSection: .popular)
         
-        guard let nowPlayingMovies = nowPlayingMovies?.sorted(by: { $0.releaseDate > $1.releaseDate }) else { return }
+        guard let nowPlayingMovies = nowPlayingMovies?.sorted(by: { $0.releaseDateObject! > $1.releaseDateObject! }) else { return }
         snapshot.appendItems(nowPlayingMovies, toSection: .nowPlaying)
         
         dataSource?.apply(snapshot)
@@ -226,7 +210,7 @@ class MediaCVC: UICollectionViewController {
         print("\(movie.title), movieID: \(movie.id), date: \(movie.releaseDate)")
         
         let movieDetailVC = MovieDetailVC()
-        movieDetailVC.passedMovieID = String(movie.id)
+        movieDetailVC.passedMovieID = String(movie.id ?? 0)
         movieDetailVC.modalPresentationStyle = .fullScreen
         self.present(movieDetailVC, animated: true, completion: nil)
     }

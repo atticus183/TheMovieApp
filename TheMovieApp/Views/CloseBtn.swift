@@ -13,7 +13,7 @@ class CloseBtn: UIButton {
     override init(frame: CGRect) {
         super.init(frame: frame)
         
-        self.frame = CGRect(x: 0, y: 0, width: 150, height: 40)
+        self.frame = CGRect(x: 0, y: 0, width: 0, height: 50)
         self.backgroundColor = .darkGray
         self.setTitle("Close", for: .normal)
         self.titleLabel!.font = UIFont.systemFont(ofSize: 18, weight: .semibold)

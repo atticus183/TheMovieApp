@@ -15,11 +15,11 @@ class MediaCell: UICollectionViewCell {
     var movie: Movie? {
         didSet {
             guard let movie = movie else { return }
-            mediaTitleLbl.text = movie.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            mediaTitleLbl.text = movie.title?.trimmingCharacters(in: .whitespacesAndNewlines)
             
-            let posterURL = URL(string: MovieHelper.retrieveImg(path: movie.posterPath ?? "", withSize: MovieHelper.posterW500))
+            let posterURL = URL(string: movie.retrieveImgURLString(with: .posterW500))
             imgView.kf.setImage(with: posterURL)
-            releaseDateLbl.text = DateFormatters.changeStringDateFormat(from: movie.releaseDate)
+            releaseDateLbl.text = movie.releaseDateFormatted
         }
     }
     

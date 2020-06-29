@@ -15,9 +15,11 @@ class SearchVC: UIViewController {
         case main
     }
     
-    private var dataSource: UITableViewDiffableDataSource<Section, SearchedMovie>!
+    private var dataSource: UITableViewDiffableDataSource<Section, Movie>!
     
-    var searchedMovies: [SearchedMovie]?
+    var searchedMovies: [Movie]?
+    
+    lazy var tmdbManager = TMDbManager()
     
     let searchBar = UISearchBar()
     let tableView = UITableView()
@@ -39,7 +41,7 @@ class SearchVC: UIViewController {
         createSnapshot(from: searchedMovies)
     }
     
-    //Customize searchbar: https://stackoverflow.com/questions/36542549/customize-search-bar
+    //Customize searchBar: https://stackoverflow.com/questions/36542549/customize-search-bar
     private func setupSearchBar() {
         searchBar.barStyle = .default
         searchBar.placeholder = "Enter movie"
@@ -75,7 +77,7 @@ class SearchVC: UIViewController {
     }
     
     private func configureDataSource() {
-        dataSource = UITableViewDiffableDataSource<Section, SearchedMovie>(tableView: tableView, cellProvider: { (tableView, indexPath, searchMovie) -> UITableViewCell? in
+        dataSource = UITableViewDiffableDataSource<Section, Movie>(tableView: tableView, cellProvider: { (tableView, indexPath, searchMovie) -> UITableViewCell? in
             let cell = tableView.dequeueReusableCell(withIdentifier: SearchCell.cellID, for: indexPath) as! SearchCell
             //NOTE:  There is no need to perform the indexPath.row logic.  The object is retrieved from the searchMovie closure parameter
             cell.movie = searchMovie
@@ -83,8 +85,8 @@ class SearchVC: UIViewController {
         })
     }
     
-    private func createSnapshot(from movies: [SearchedMovie]?) {
-        var snapShot = NSDiffableDataSourceSnapshot<Section, SearchedMovie>()
+    private func createSnapshot(from movies: [Movie]?) {
+        var snapShot = NSDiffableDataSourceSnapshot<Section, Movie>()
         snapShot.appendSections([.main])
         if let searchedMovies = movies {
             snapShot.appendItems(searchedMovies, toSection: .main)
@@ -107,6 +109,8 @@ extension SearchVC: UITableViewDelegate {
         movieDetailVC.passedMovieID = String(movie.id ?? 1)
         movieDetailVC.modalPresentationStyle = .fullScreen
         self.present(movieDetailVC, animated: true, completion: nil)
+        
+        self.tableView.deselectRow(at: indexPath, animated: true)
     }
 }
 
@@ -114,24 +118,15 @@ extension SearchVC: UITableViewDelegate {
 
 extension SearchVC: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        let cleanedSearchText = searchText.lowercased().replacingOccurrences(of: " ", with: "%20")
-        let url = URL(string: "https://api.themoviedb.org/3/search/movie?api_key=\(TMdbAPIKey.KEY)&language=en-US&query=\(cleanedSearchText)&page=1&include_adult=false")
-        let jsonParser = JSONParser()
-        jsonParser.decodeSingle(of: MovieSearchResults.self, from: url!) { [weak self] (result) in
+        tmdbManager.searchForMovie(with: searchText) { [weak self] (result) in
             switch result {
-            case .failure(let error):
-                if error is DataError {
-                    print(error)
-                } else {
-                    print(error.localizedDescription)
-                }
-                print(error.localizedDescription)
-            case .success(let res):
-                self?.searchedMovies = res.results?.sorted(by: { $0.popularity ?? 0  > $1.popularity ?? 0 })
-                
+            case .success(let searchResults):
+                self?.searchedMovies = searchResults.results?.sorted(by: { $0.popularity ?? 0  > $1.popularity ?? 0 })
                 DispatchQueue.main.async {
                     self?.createSnapshot(from: self?.searchedMovies)
                 }
+            case .failure(let error):
+                print("Error search for movie: \(error.errorMessage).  \(error.localizedDescription)")
             }
         }
     }

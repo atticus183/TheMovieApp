@@ -10,16 +10,16 @@ import UIKit
 
 class SearchCell: UITableViewCell {
     
-    var movie: SearchedMovie? {
+    var movie: Movie? {
         didSet {
             guard let movie = movie else { return }
             mediaTitleLbl.text = movie.title?.trimmingCharacters(in: .whitespacesAndNewlines)
             
-            let posterURL = URL(string: MovieHelper.retrieveImg(path: movie.posterPath ?? "", withSize: MovieHelper.posterW500))
+            let posterURL = URL(string: movie.retrieveImgURLString(with: .posterW500))
             posterImgView.kf.setImage(with: posterURL)
             
-            genreLbl.text = Genre.retrieveGenreTextString(ids: movie.genreIds)
-            releaseDateLbl.text = DateFormatters.changeStringDateFormat(from: movie.releaseDate ?? "")
+            genreLbl.text = movie.genresString
+            releaseDateLbl.text = movie.releaseDateFormatted
         }
     }
     
@@ -72,7 +72,6 @@ class SearchCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
         vTextStackView.axis = .vertical
-//        vTextStackView.distribution = .fillEqually
         vTextStackView.spacing = 4
         vTextStackView.addArrangedSubview(mediaTitleLbl)
         vTextStackView.addArrangedSubview(genreLbl)

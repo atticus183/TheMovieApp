@@ -7,18 +7,17 @@
 //
 
 import UIKit
-//import Kingfisher
-import KingfisherSwiftUI
 import SwiftUI  //used for live refresh only
 
 class MovieDetailVC: UIViewController {
     
     let dispatchGroup = DispatchGroup()
     
-    let jsonParser = JSONParser()
-    var passedMovieID = "330457"
+    lazy var tmdbManager = TMDbManager()
     
-    var movie: MovieDetails?
+    var passedMovieID = "330457"  //default value for SwiftUI preview
+    
+    var movie: Movie?
     var movieReleaseDates: [ReleaseDate]?
     
     let bannerImgView = UIImageView()
@@ -43,7 +42,7 @@ class MovieDetailVC: UIViewController {
         label.textAlignment = .left
         label.font = UIFont.systemFont(ofSize: 18, weight: .bold)
         label.minimumScaleFactor = 0.5
-        label.text = "R"
+        label.text = "Rating"
         
         return label
     }()
@@ -63,7 +62,6 @@ class MovieDetailVC: UIViewController {
     
     lazy var releaseDateSV: ReleaseDateSV = {
         let sv = ReleaseDateSV()
-        
         return sv
     }()
     
@@ -71,8 +69,8 @@ class MovieDetailVC: UIViewController {
        let label = UILabel()
         label.textColor = .label
         label.textAlignment = .left
-        label.font = UIFont.systemFont(ofSize: 12, weight: .regular)
-        label.numberOfLines = 8
+        label.font = UIFont.systemFont(ofSize: 15, weight: .regular)
+        label.numberOfLines = 10
         label.text = "Summary..."
         
         return label
@@ -102,38 +100,27 @@ class MovieDetailVC: UIViewController {
         //MARK: Add background colors to the imgViews to work with live preview
 //        bannerImgView.backgroundColor = .systemPink
 //        postImgView.backgroundColor = .systemBlue
-        
+
         dispatchGroup.enter()
-        jsonParser.decodeMovieDetails(with: passedMovieID) { [weak self] (result) in
+        tmdbManager.tmdbRequest(Movie.self, endPoint: .getDetails(passedMovieID)) { [weak self] (result) in
             switch result {
-            case .failure(let error):
-                if error is DataError {
-                    print(error)
-                } else {
-                    print(error.localizedDescription)
-                }
-                print(error.localizedDescription)
             case .success(let movie):
                 self?.movie = movie
                 self?.dispatchGroup.leave()
+            case .failure(let error):
+                print("Movie detail error: \(error.localizedDescription)")
             }
         }
         
         //MARK: Retrieve Release Dates and rating
-        let nowPlayingMoviesUrl = URL(string: "https://api.themoviedb.org/3/movie/\(passedMovieID)/release_dates?api_key=\(TMdbAPIKey.KEY)")
         dispatchGroup.enter()
-        jsonParser.decodeSingle(of: MovieReleaseDateResult.self, from: nowPlayingMoviesUrl!) { [weak self] (result) in
+        tmdbManager.tmdbRequest(MovieReleaseDateResult.self, endPoint: .getReleaseDates(passedMovieID)) { [weak self] (result) in
             switch result {
-            case .failure(let error):
-                if error is DataError {
-                    print(error)
-                } else {
-                    print(error.localizedDescription)
-                }
-                print(error.localizedDescription)
-            case .success(let releaseDates):
-                self?.movieReleaseDates = releaseDates.unitedStatesReleaseDates
+            case .success(let movieReleaseDateResult):
+                self?.movieReleaseDates = movieReleaseDateResult.unitedStatesReleaseDates
                 self?.dispatchGroup.leave()
+            case .failure(let error):
+                print("Movie release date error: \(error.localizedDescription)")
             }
         }
         
@@ -199,9 +186,9 @@ class MovieDetailVC: UIViewController {
         summaryLbl.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -5).isActive = true
         
         closeBtn.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor, constant: -12).isActive = true
-        closeBtn.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
-        closeBtn.widthAnchor.constraint(equalToConstant: 150).isActive = true
-        closeBtn.heightAnchor.constraint(equalToConstant: 40).isActive = true
+        closeBtn.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 30).isActive = true
+        closeBtn.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -30).isActive = true
+        closeBtn.heightAnchor.constraint(equalToConstant: closeBtn.frame.height).isActive = true
       
     }
     
@@ -209,19 +196,15 @@ class MovieDetailVC: UIViewController {
     private func loadViews() {
         guard let movie = movie else { return }
         
-        let backdropURL = URL(string: MovieHelper.retrieveImg(path: movie.backdropPath ?? "", withSize: MovieHelper.backdropW1280))
+        let backdropURL = URL(string: movie.retrieveImgURLString(with: .backdropW1280))
         bannerImgView.kf.setImage(with: backdropURL)
         
-        let posterURL = URL(string: MovieHelper.retrieveImg(path: movie.posterPath ?? "", withSize: MovieHelper.logoW185))
+        let posterURL = URL(string: movie.retrieveImgURLString(with: .posterW154))
         postImgView.kf.setImage(with: posterURL)
         
         movieTitleLbl.text = movie.title
-        
         movieRatingLbl.text = movieReleaseDates?.first?.certification ?? "No Rating"
-        
-        var genres = [String]()
-        movie.genres.forEach({ genres.append($0.name) })
-        genreLbl.text = genres.joined(separator: ", ")
+        genreLbl.text = movie.genresString
         
         let theaterReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .theatrical, in: movieReleaseDates)
         releaseDateSV.theaterReleaseDateLbl.text = "Theatrical: \(DateFormatters.convertZTime(zStringDate: theaterReleaseDate))"
