@@ -1,4 +1,8 @@
 # TheMovieApp
+
+![Group 68@2x](https://user-images.githubusercontent.com/25728996/89601305-d2cb0280-d829-11ea-95e1-f385a3d5d171.png)
+
+
 An app that allows you to view Upcoming, Popular, and Now Playing movies.  You can also search for movies and see the full details of a particular movie including the theatrical, digital, and physical release dates. 
 Some topics covered in this project include:
 <p>
