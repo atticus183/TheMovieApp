@@ -9,4 +9,6 @@ Some topics covered in this project include:
 <br>*support for dark mode
 <br>*using SwiftUI’s preview window to “hot reload” UIKit code (see bottom of the VC files) </p>
 
+<p>Sign up at tmdb website to obtain your own API key.</p>
+
 Kingfisher installed via SPM.  All code, no storyboard.
