@@ -56,14 +56,13 @@ class MediaCVC: UICollectionViewController {
         
         //Create dataSource and reload once all the movie types have finished downloading
         dispatchGroup.notify(queue: .main) {
-            print("Dispatch group notified")
             self.createDataSource()
             self.reloadData()
         }
         
     }
    
-    //MARK: Darkmode ui adjustments: https://developer.apple.com/documentation/xcode/supporting_dark_mode_in_your_interface
+    //MARK: Dark mode ui adjustments: https://developer.apple.com/documentation/xcode/supporting_dark_mode_in_your_interface
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         print("traitCollectionDidChange")
     }
@@ -80,32 +79,27 @@ class MediaCVC: UICollectionViewController {
     
     private func downloadUpcomingMovies() {
         dispatchGroup.enter()
-        print("Upcoming group enter")
         tmdbManager.tmdbRequest(UpcomingResults.self, endPoint: .getUpcoming) { [weak self] (result) in
+            defer { self?.dispatchGroup.leave() }
+            
             switch result {
             case .success(let result):
                 self?.upcomingMovies = result.results
-                print("Upcoming group leave")
-                self?.dispatchGroup.leave()
             case .failure(let error):
                 print("Upcoming error: \(error.errorMessage)")
             }
         }
-        
-        
-        
     }
     
     private func downloadPopularMovies() {
         //MARK: Retrieve Popular Movies
         dispatchGroup.enter()
-        print("popular group enter")
         tmdbManager.tmdbRequest(PopularResults.self, endPoint: .getPopular) { [weak self] (result) in
+            defer { self?.dispatchGroup.leave() }
+            
             switch result {
             case .success(let result):
                 self?.popularMovies = result.results
-                print("Popular group leave")
-                self?.dispatchGroup.leave()
             case .failure(let error):
                 print("Upcoming error: \(error.errorMessage)")
             }
@@ -115,13 +109,12 @@ class MediaCVC: UICollectionViewController {
     private func downloadNowShowingMovies() {
         //MARK: Retrieve Now Playing Movies
         dispatchGroup.enter()
-        print("now playing group enter")
         tmdbManager.tmdbRequest(NowPlayingResults.self, endPoint: .getNowPlaying) { [weak self] (result) in
+            defer { self?.dispatchGroup.leave() }
+            
             switch result {
             case .success(let result):
                 self?.nowPlayingMovies = result.results
-                print("Now Playing group leave")
-                self?.dispatchGroup.leave()
             case .failure(let error):
                 print("Upcoming error: \(error.errorMessage)")
             }
@@ -158,7 +151,7 @@ class MediaCVC: UICollectionViewController {
         var snapshot = NSDiffableDataSourceSnapshot<MovieStatus, Movie>()
         snapshot.appendSections(movieStatues)
         
-        guard let upcomingMovies = upcomingMovies?.sorted(by: { $0.releaseDateObject! < $1.releaseDateObject! }) else { return }
+        guard let upcomingMovies = upcomingMovies?.sorted(by: { $0.releaseDateObject! > $1.releaseDateObject! }) else { return }
         snapshot.appendItems(upcomingMovies, toSection: .upcoming)
         
         guard let popularMovies = popularMovies?.sorted(by: { $0.releaseDateObject! > $1.releaseDateObject! }) else { return }
@@ -207,7 +200,7 @@ class MediaCVC: UICollectionViewController {
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let tappedMovie = dataSource?.itemIdentifier(for: indexPath)
         guard let movie = tappedMovie else { return }
-        print("\(movie.title), movieID: \(movie.id), date: \(movie.releaseDate)")
+        print("\(String(describing: movie.title)), movieID: \(String(describing: movie.id)), date: \(String(describing: movie.releaseDate))")
         
         let movieDetailVC = MovieDetailVC()
         movieDetailVC.passedMovieID = String(movie.id ?? 0)

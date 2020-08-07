@@ -97,10 +97,6 @@ class MovieDetailVC: UIViewController {
         movieTitleLbl.text = "Title Label"
         summaryLbl.text = "Summary...Summary...Summary..."
 
-        //MARK: Add background colors to the imgViews to work with live preview
-//        bannerImgView.backgroundColor = .systemPink
-//        postImgView.backgroundColor = .systemBlue
-
         dispatchGroup.enter()
         tmdbManager.tmdbRequest(Movie.self, endPoint: .getDetails(passedMovieID)) { [weak self] (result) in
             switch result {
@@ -242,7 +238,7 @@ fileprivate struct IntegratedController: UIViewControllerRepresentable {
 fileprivate struct SecondContentView: View {
     var body: some View {
         IntegratedController().edgesIgnoringSafeArea(.all)
-//        IntegratedController()
+        //        IntegratedController()
     }
 }
 

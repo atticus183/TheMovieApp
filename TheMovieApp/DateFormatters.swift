@@ -39,13 +39,13 @@ struct DateFormatters {
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 
-        let formattedDate = dateFormatter.date(from: zStringDate)
+        guard let formattedDate = dateFormatter.date(from: zStringDate) else { return "" }
         
         let dateFormatter2 = DateFormatter()
     //    dateFormatter2.dateFormat = "yyyy-MM-dd"
         dateFormatter2.dateStyle = .medium
         dateFormatter2.timeZone = TimeZone(abbreviation: "UTC")
         
-        return dateFormatter2.string(from: ((formattedDate ?? nil) ?? nil)!)
+        return dateFormatter2.string(from: formattedDate)
     }
 }
