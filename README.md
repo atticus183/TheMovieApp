@@ -11,6 +11,7 @@ Some topics covered in this project include:
 <br>*utilizing Kingfisher to load and cache images from the web
 <br>*accessing TMDb API to retrieve movie details
 <br>*support for dark mode
+<br>*UIApplicationShortcutItem to allow users to long press on the app icon to quickly search for a movie
 <br>*using SwiftUI’s preview window to “hot reload” UIKit code (see bottom of the VC files) </p>
 
 <p>Sign up at tmdb website to obtain your own API key.</p>
