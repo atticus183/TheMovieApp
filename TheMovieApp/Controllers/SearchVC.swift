@@ -126,40 +126,16 @@ extension SearchVC: UISearchBarDelegate {
     }
 }
 
+// MARK: SwiftUI Preview for UIKit
 
-//MARK: SwiftUI setup to allow preview updates with UIKit
-//NOTE:  The use of fileprivate is so you don't have to create new struct names each file you use this in
-//Steps to copy this to another file:
-//import SwiftUI
-//change VC the typealias is referring to
-//change the name of the PreviewProvider struct below to something unique
+#if DEBUG
+import SwiftUI
 
-fileprivate typealias ThisViewController = SearchVC //update to this file's VC
-
-fileprivate struct IntegratedController: UIViewControllerRepresentable {
-    
-    func makeUIViewController(context: UIViewControllerRepresentableContext<IntegratedController>) -> ThisViewController {
-        return ThisViewController()
-    }
-    
-    func updateUIViewController(_ uiViewController: ThisViewController, context: UIViewControllerRepresentableContext<IntegratedController>) {
-    }
-}
-
-
-//This needs to be changed to something unique IF root vc
-fileprivate struct SecondContentView: View {
-    var body: some View {
-        IntegratedController().edgesIgnoringSafeArea(.all)
-        //        IntegratedController()
-    }
-}
-
-//This needs to be changed to something unique, cannot be fileprivate
-struct SearchVC_ContentView_Preview: PreviewProvider {
+struct SearchVC_Preview: PreviewProvider {
     static var previews: some View {
-        SecondContentView()  //if preview isn't changing, change this struct to the struct conforming to View
+        SearchVC().toPreview().edgesIgnoringSafeArea(.all)
     }
 }
+#endif
 
 

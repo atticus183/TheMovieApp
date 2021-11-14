@@ -6,7 +6,6 @@
 //  Copyright © 2020 Josh R. All rights reserved.
 //
 
-import SwiftUI  //used for live refresh only
 import UIKit
 
 final class MovieDetailVC: UIViewController {
@@ -24,7 +23,7 @@ final class MovieDetailVC: UIViewController {
     private let postImgView = UIImageView()
 
     private lazy var movieTitleLbl: UILabel = {
-       let label = UILabel()
+        let label = UILabel()
         label.textColor = .label
         label.textAlignment = .left
         label.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
@@ -36,7 +35,7 @@ final class MovieDetailVC: UIViewController {
     }()
 
     private lazy var movieRatingLbl: UILabel = {
-       let label = UILabel()
+        let label = UILabel()
         label.textColor = .label
         label.textAlignment = .left
         label.font = UIFont.systemFont(ofSize: 18, weight: .bold)
@@ -227,18 +226,14 @@ fileprivate struct IntegratedController: UIViewControllerRepresentable {
     }
 }
 
+// MARK: SwiftUI Preview for UIKit
 
-//This needs to be changed to something unique IF root vc
-fileprivate struct SecondContentView: View {
-    var body: some View {
-        IntegratedController().edgesIgnoringSafeArea(.all)
-        //        IntegratedController()
-    }
-}
+#if DEBUG
+import SwiftUI
 
-//This needs to be changed to something unique, cannot be fileprivate
-struct MovieDetailVC_ContentView_Preview: PreviewProvider {
+struct MovieDetailVC_Preview: PreviewProvider {
     static var previews: some View {
-        SecondContentView()  //if preview isn't changing, change this struct to the struct conforming to View
+        MovieDetailVC().toPreview().edgesIgnoringSafeArea(.all)
     }
 }
+#endif
