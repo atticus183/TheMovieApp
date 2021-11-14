@@ -6,24 +6,24 @@
 //  Copyright © 2020 Josh R. All rights reserved.
 //
 
-import UIKit
 import SwiftUI  //used for live refresh only
+import UIKit
 
-class MovieDetailVC: UIViewController {
-    
-    let dispatchGroup = DispatchGroup()
-    
-    lazy var tmdbManager = TMDbManager()
-    
+final class MovieDetailVC: UIViewController {
+
+    private let dispatchGroup = DispatchGroup()
+
+    private lazy var tmdbManager = TMDbManager()
+
     var passedMovieID = "330457"  //default value for SwiftUI preview
-    
-    var movie: Movie?
-    var movieReleaseDates: [ReleaseDate]?
-    
-    let bannerImgView = UIImageView()
-    let postImgView = UIImageView()
-    
-    lazy var movieTitleLbl: UILabel = {
+
+    private var movie: Movie?
+    private var movieReleaseDates: [ReleaseDate]?
+
+    private let bannerImgView = UIImageView()
+    private let postImgView = UIImageView()
+
+    private lazy var movieTitleLbl: UILabel = {
        let label = UILabel()
         label.textColor = .label
         label.textAlignment = .left
@@ -32,22 +32,20 @@ class MovieDetailVC: UIViewController {
         label.minimumScaleFactor = 0.5
         label.numberOfLines = 2
         label.text = "Title Label"
-        
         return label
     }()
-    
-    lazy var movieRatingLbl: UILabel = {
+
+    private lazy var movieRatingLbl: UILabel = {
        let label = UILabel()
         label.textColor = .label
         label.textAlignment = .left
         label.font = UIFont.systemFont(ofSize: 18, weight: .bold)
         label.minimumScaleFactor = 0.5
         label.text = "Rating"
-        
         return label
     }()
-    
-    lazy var genreLbl: UILabel = {
+
+    private lazy var genreLbl: UILabel = {
        let label = UILabel()
         label.textColor = .label
         label.textAlignment = .left
@@ -56,44 +54,38 @@ class MovieDetailVC: UIViewController {
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.8
         label.text = "Genre"
-        
         return label
     }()
-    
-    lazy var releaseDateSV: ReleaseDateSV = {
+
+    private lazy var releaseDateSV: ReleaseDateSV = {
         let sv = ReleaseDateSV()
         return sv
     }()
-    
-    lazy var summaryLbl: UILabel = {
+
+    private lazy var summaryLbl: UILabel = {
        let label = UILabel()
         label.textColor = .label
         label.textAlignment = .left
         label.font = UIFont.systemFont(ofSize: 15, weight: .regular)
         label.numberOfLines = 10
         label.text = "Summary..."
-        
         return label
     }()
-    
-    lazy var closeBtn: CloseBtn = {
+
+    private lazy var closeBtn: CloseBtn = {
         let button = CloseBtn()
         button.addTarget(self, action: #selector(closeBtnTapped), for: .touchUpInside)
         
         return button
     }()
-    
-    @objc func closeBtnTapped() {
-        self.dismiss(animated: true, completion: nil)
-    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        self.view.backgroundColor = .systemGray6  //use systemGray6 or systemBackground
+        view.backgroundColor = .systemGray6  //use systemGray6 or systemBackground
         addViewsToVC()
         addViewConstraints()
-        
+
         movieTitleLbl.text = "Title Label"
         summaryLbl.text = "Summary...Summary...Summary..."
 
@@ -107,7 +99,7 @@ class MovieDetailVC: UIViewController {
                 print("Movie detail error: \(error.localizedDescription)")
             }
         }
-        
+
         //MARK: Retrieve Release Dates and rating
         dispatchGroup.enter()
         tmdbManager.tmdbRequest(MovieReleaseDateResult.self, endPoint: .getReleaseDates(passedMovieID)) { [weak self] (result) in
@@ -119,26 +111,28 @@ class MovieDetailVC: UIViewController {
                 print("Movie release date error: \(error.localizedDescription)")
             }
         }
-        
+
         dispatchGroup.notify(queue: .main) {
-            print("Dispatch group notified")
             self.loadViews()
         }
     }
 
-    
+    @objc func closeBtnTapped() {
+        self.dismiss(animated: true, completion: nil)
+    }
+
     private func addViewsToVC() {
         bannerImgView.contentMode = .scaleAspectFit
         postImgView.contentMode = .scaleAspectFit
-        
-        self.view.addSubview(bannerImgView)
-        self.view.addSubview(postImgView)
-        self.view.addSubview(movieTitleLbl)
-        self.view.addSubview(movieRatingLbl)
-        self.view.addSubview(genreLbl)
-        self.view.addSubview(releaseDateSV)
-        self.view.addSubview(summaryLbl)
-        self.view.addSubview(closeBtn)
+
+        view.addSubview(bannerImgView)
+        view.addSubview(postImgView)
+        view.addSubview(movieTitleLbl)
+        view.addSubview(movieRatingLbl)
+        view.addSubview(genreLbl)
+        view.addSubview(releaseDateSV)
+        view.addSubview(summaryLbl)
+        view.addSubview(closeBtn)
     }
 
     private func addViewConstraints() {
@@ -150,68 +144,68 @@ class MovieDetailVC: UIViewController {
         releaseDateSV.translatesAutoresizingMaskIntoConstraints = false
         summaryLbl.translatesAutoresizingMaskIntoConstraints = false
         closeBtn.translatesAutoresizingMaskIntoConstraints = false
-        
-        bannerImgView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0).isActive = true
-        bannerImgView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: -12).isActive = true
-        bannerImgView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor,constant: 12).isActive = true
-        bannerImgView.heightAnchor.constraint(equalToConstant: 235).isActive = true
-        
-        postImgView.topAnchor.constraint(equalTo: bannerImgView.bottomAnchor, constant: -50).isActive = true
-        postImgView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 8).isActive = true
-        
-        postImgView.widthAnchor.constraint(equalToConstant: 125).isActive = true
-        postImgView.heightAnchor.constraint(equalToConstant: 200).isActive = true
 
-        movieTitleLbl.topAnchor.constraint(equalTo: bannerImgView.bottomAnchor, constant: 2).isActive = true
-        movieTitleLbl.leadingAnchor.constraint(equalTo: postImgView.trailingAnchor, constant: 5).isActive = true
-        movieTitleLbl.trailingAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.trailingAnchor, constant: -8).isActive = true
-        
-        movieRatingLbl.topAnchor.constraint(equalTo: movieTitleLbl.bottomAnchor, constant: 2).isActive = true
-        movieRatingLbl.leadingAnchor.constraint(equalTo: postImgView.trailingAnchor, constant: 5).isActive = true
-        
-        genreLbl.topAnchor.constraint(equalTo: movieRatingLbl.bottomAnchor, constant: 2).isActive = true
-        genreLbl.leadingAnchor.constraint(equalTo: postImgView.trailingAnchor, constant: 5).isActive = true
-        genreLbl.trailingAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.trailingAnchor, constant: -8).isActive = true
-        
-        //SV contains all the release date labels
-        releaseDateSV.topAnchor.constraint(equalTo: genreLbl.bottomAnchor, constant: 2).isActive = true
-        releaseDateSV.leadingAnchor.constraint(equalTo: postImgView.trailingAnchor, constant: 5).isActive = true
-        
-        summaryLbl.topAnchor.constraint(equalTo: postImgView.bottomAnchor, constant: 20).isActive = true
-        summaryLbl.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 5).isActive = true
-        summaryLbl.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -5).isActive = true
-        
-        closeBtn.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor, constant: -12).isActive = true
-        closeBtn.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 30).isActive = true
-        closeBtn.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -30).isActive = true
-        closeBtn.heightAnchor.constraint(equalToConstant: closeBtn.frame.height).isActive = true
-      
+        NSLayoutConstraint.activate([
+            bannerImgView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0),
+            bannerImgView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: -12),
+            bannerImgView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor,constant: 12),
+            bannerImgView.heightAnchor.constraint(equalToConstant: 235),
+
+            postImgView.topAnchor.constraint(equalTo: bannerImgView.bottomAnchor, constant: -50),
+            postImgView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+
+            postImgView.widthAnchor.constraint(equalToConstant: 125),
+            postImgView.heightAnchor.constraint(equalToConstant: 200),
+
+            movieTitleLbl.topAnchor.constraint(equalTo: bannerImgView.bottomAnchor, constant: 2),
+            movieTitleLbl.leadingAnchor.constraint(equalTo: postImgView.trailingAnchor, constant: 5),
+            movieTitleLbl.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -8),
+
+            movieRatingLbl.topAnchor.constraint(equalTo: movieTitleLbl.bottomAnchor, constant: 2),
+            movieRatingLbl.leadingAnchor.constraint(equalTo: postImgView.trailingAnchor, constant: 5),
+
+            genreLbl.topAnchor.constraint(equalTo: movieRatingLbl.bottomAnchor, constant: 2),
+            genreLbl.leadingAnchor.constraint(equalTo: postImgView.trailingAnchor, constant: 5),
+            genreLbl.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -8),
+
+            //SV contains all the release date labels
+            releaseDateSV.topAnchor.constraint(equalTo: genreLbl.bottomAnchor, constant: 2),
+            releaseDateSV.leadingAnchor.constraint(equalTo: postImgView.trailingAnchor, constant: 5),
+
+            summaryLbl.topAnchor.constraint(equalTo: postImgView.bottomAnchor, constant: 20),
+            summaryLbl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 5),
+            summaryLbl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -5),
+
+            closeBtn.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
+            closeBtn.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 30),
+            closeBtn.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+            closeBtn.heightAnchor.constraint(equalToConstant: closeBtn.frame.height),
+        ])
     }
-    
+
     //Used to set details after the movie is retrieved
     private func loadViews() {
         guard let movie = movie else { return }
-        
+
         let backdropURL = URL(string: movie.retrieveImgURLString(with: .backdropW1280))
         bannerImgView.kf.setImage(with: backdropURL)
-        
+
         let posterURL = URL(string: movie.retrieveImgURLString(with: .posterW154))
         postImgView.kf.setImage(with: posterURL)
-        
+
         movieTitleLbl.text = movie.title
         movieRatingLbl.text = movieReleaseDates?.first?.certification ?? "No Rating"
         genreLbl.text = movie.genresString
-        
+
         let theaterReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .theatrical, in: movieReleaseDates)
         releaseDateSV.theaterReleaseDateLbl.text = "Theatrical: \(DateFormatters.convertZTime(zStringDate: theaterReleaseDate))"
         let digitalReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .digital, in: movieReleaseDates)
         releaseDateSV.digitalReleaseDateLbl.text = "Digital: \(DateFormatters.convertZTime(zStringDate: digitalReleaseDate))"
         let physicalReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .physical, in: movieReleaseDates)
         releaseDateSV.physicalReleaseDateLbl.text = "Physical: \(DateFormatters.convertZTime(zStringDate: physicalReleaseDate))"
-        
+
         summaryLbl.text = movie.overview ?? "No Summary Available"
     }
-    
 }
 
 
