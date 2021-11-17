@@ -8,11 +8,10 @@
 
 import Foundation
 
-
 enum MovieStatus: String, CaseIterable {
-    case upcoming = "Upcoming"
-    case popular = "Popular"
     case nowPlaying = "Now Playing"
+    case popular = "Popular"
+    case upcoming = "Upcoming"
 }
 
 struct Genre: Codable, Hashable {
@@ -171,10 +170,7 @@ struct SpokenLanguage: Codable, Hashable {
 
 struct UpcomingResults: Codable {
     let results: [Movie]?
-//    let page: Int?
-//    let totalResults: Int?
     let dates: ResultDates?
-//    let totalPages: Int?
 }
 
 struct PopularResults: Codable {

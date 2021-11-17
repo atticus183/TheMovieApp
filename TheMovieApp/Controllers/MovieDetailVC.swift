@@ -6,18 +6,16 @@
 //  Copyright © 2020 Josh R. All rights reserved.
 //
 
+import Combine
 import UIKit
 
 final class MovieDetailVC: UIViewController {
 
-    private let dispatchGroup = DispatchGroup()
+    private var cancellables: Set<AnyCancellable> = []
 
-    private lazy var tmdbManager = TMDbManager()
+    private lazy var viewModel = MovieDetailVCViewModel(movieID: passedMovieID)
 
     var passedMovieID = "330457"  //default value for SwiftUI preview
-
-    private var movie: Movie?
-    private var movieReleaseDates: [ReleaseDate]?
 
     private let bannerImgView = UIImageView()
     private let postImgView = UIImageView()
@@ -30,7 +28,7 @@ final class MovieDetailVC: UIViewController {
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.5
         label.numberOfLines = 2
-        label.text = "Title Label"
+        label.text = "Loading..."
         return label
     }()
 
@@ -67,14 +65,13 @@ final class MovieDetailVC: UIViewController {
         label.textAlignment = .left
         label.font = UIFont.systemFont(ofSize: 15, weight: .regular)
         label.numberOfLines = 10
-        label.text = "Summary..."
+        label.text = "Loading summary..."
         return label
     }()
 
     private lazy var closeBtn: CloseBtn = {
         let button = CloseBtn()
         button.addTarget(self, action: #selector(closeBtnTapped), for: .touchUpInside)
-        
         return button
     }()
 
@@ -85,39 +82,12 @@ final class MovieDetailVC: UIViewController {
         addViewsToVC()
         addViewConstraints()
 
-        movieTitleLbl.text = "Title Label"
-        summaryLbl.text = "Summary...Summary...Summary..."
-
-        dispatchGroup.enter()
-        tmdbManager.tmdbRequest(Movie.self, endPoint: .getDetails(passedMovieID)) { [weak self] (result) in
-            switch result {
-            case .success(let movie):
-                self?.movie = movie
-                self?.dispatchGroup.leave()
-            case .failure(let error):
-                print("Movie detail error: \(error.localizedDescription)")
-            }
-        }
-
-        //MARK: Retrieve Release Dates and rating
-        dispatchGroup.enter()
-        tmdbManager.tmdbRequest(MovieReleaseDateResult.self, endPoint: .getReleaseDates(passedMovieID)) { [weak self] (result) in
-            switch result {
-            case .success(let movieReleaseDateResult):
-                self?.movieReleaseDates = movieReleaseDateResult.unitedStatesReleaseDates
-                self?.dispatchGroup.leave()
-            case .failure(let error):
-                print("Movie release date error: \(error.localizedDescription)")
-            }
-        }
-
-        dispatchGroup.notify(queue: .main) {
-            self.loadViews()
-        }
+        subscribeToMovieDetails()
+        subscribeToReleaseDates()
     }
 
     @objc func closeBtnTapped() {
-        self.dismiss(animated: true, completion: nil)
+        dismiss(animated: true, completion: nil)
     }
 
     private func addViewsToVC() {
@@ -182,47 +152,36 @@ final class MovieDetailVC: UIViewController {
         ])
     }
 
-    //Used to set details after the movie is retrieved
-    private func loadViews() {
-        guard let movie = movie else { return }
+    private func subscribeToMovieDetails() {
+        viewModel.$movie
+            .receive(on: RunLoop.main)
+            .compactMap { $0 }
+            .sink { [weak self] movie in
+                let backdropURL = URL(string: movie.retrieveImgURLString(with: .backdropW1280))
+                self?.bannerImgView.kf.setImage(with: backdropURL)
 
-        let backdropURL = URL(string: movie.retrieveImgURLString(with: .backdropW1280))
-        bannerImgView.kf.setImage(with: backdropURL)
+                let posterURL = URL(string: movie.retrieveImgURLString(with: .posterW154))
+                self?.postImgView.kf.setImage(with: posterURL)
 
-        let posterURL = URL(string: movie.retrieveImgURLString(with: .posterW154))
-        postImgView.kf.setImage(with: posterURL)
-
-        movieTitleLbl.text = movie.title
-        movieRatingLbl.text = movieReleaseDates?.first?.certification ?? "No Rating"
-        genreLbl.text = movie.genresString
-
-        let theaterReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .theatrical, in: movieReleaseDates)
-        releaseDateSV.theaterReleaseDateLbl.text = "Theatrical: \(DateFormatters.convertZTime(zStringDate: theaterReleaseDate))"
-        let digitalReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .digital, in: movieReleaseDates)
-        releaseDateSV.digitalReleaseDateLbl.text = "Digital: \(DateFormatters.convertZTime(zStringDate: digitalReleaseDate))"
-        let physicalReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .physical, in: movieReleaseDates)
-        releaseDateSV.physicalReleaseDateLbl.text = "Physical: \(DateFormatters.convertZTime(zStringDate: physicalReleaseDate))"
-
-        summaryLbl.text = movie.overview ?? "No Summary Available"
+                self?.movieTitleLbl.text = movie.title
+                self?.summaryLbl.text = movie.overview ?? "No Summary Available"
+                self?.genreLbl.text = movie.genresString
+            }.store(in: &cancellables)
     }
-}
 
-
-//MARK: SwiftUI setup to allow preview updates with UIKit
-//NOTE:  The use of fileprivate is so you don't have to create new struct names each file you use this in
-//Steps to copy this to another file:
-    //change VC the typealias is referring to
-    //change the name of the PreviewProvider struct below to something unique
-
-fileprivate typealias ThisViewController = MovieDetailVC //update to this file's VC
-
-fileprivate struct IntegratedController: UIViewControllerRepresentable {
-    
-    func makeUIViewController(context: UIViewControllerRepresentableContext<IntegratedController>) -> ThisViewController {
-        return ThisViewController()
-    }
-    
-    func updateUIViewController(_ uiViewController: ThisViewController, context: UIViewControllerRepresentableContext<IntegratedController>) {
+    private func subscribeToReleaseDates() {
+        viewModel.$movieReleaseDates
+            .receive(on: RunLoop.main)
+            .compactMap { $0 }
+            .sink { [weak self] movieReleaseDates in
+                self?.movieRatingLbl.text = movieReleaseDates.first?.certification ?? "No Rating"
+                let theaterReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .theatrical, in: movieReleaseDates)
+                self?.releaseDateSV.theaterReleaseDateLbl.text = "Theatrical: \(DateFormatters.convertZTime(zStringDate: theaterReleaseDate))"
+                let digitalReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .digital, in: movieReleaseDates)
+                self?.releaseDateSV.digitalReleaseDateLbl.text = "Digital: \(DateFormatters.convertZTime(zStringDate: digitalReleaseDate))"
+                let physicalReleaseDate = ReleaseDate.retrieveReleaseDate(byType: .physical, in: movieReleaseDates)
+                self?.releaseDateSV.physicalReleaseDateLbl.text = "Physical: \(DateFormatters.convertZTime(zStringDate: physicalReleaseDate))"
+        }.store(in: &cancellables)
     }
 }
 

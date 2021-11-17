@@ -6,19 +6,16 @@
 //  Copyright © 2019 Josh R. All rights reserved.
 //
 
+import Combine
 import UIKit
 
 final class MediaCVC: UICollectionViewController {
 
+    private var cancellables: Set<AnyCancellable> = []
+
+    private let viewModel = MediaCVCViewModel()
+
     private var dataSource: UICollectionViewDiffableDataSource<MovieStatus, Movie>?
-
-    private lazy var tmdbManager = TMDbManager()
-
-    private let dispatchGroup = DispatchGroup()
-
-    private var upcomingMovies: [Movie]?
-    private var popularMovies: [Movie]?
-    private var nowPlayingMovies: [Movie]?
 
     private let movieStatues = MovieStatus.allCases
 
@@ -32,7 +29,7 @@ final class MediaCVC: UICollectionViewController {
         super.viewDidLoad()
 
         navigationController?.navigationBar.isHidden = true
-        collectionView.backgroundColor = .systemBackground  //if using one of the system colors, you don't need to change the color in traitCollectionDidChange, //use systemGray6 or systemBackground
+        collectionView.backgroundColor = .systemBackground
         setupSearchButton()
 
         //MARK: Setup collectionView
@@ -44,17 +41,11 @@ final class MediaCVC: UICollectionViewController {
                                 forCellWithReuseIdentifier: MediaCell.identifier)
         collectionView.collectionViewLayout = createCompositionalLayout()
 
-        //Retrieve movies from JSON network call
-        downloadUpcomingMovies()
-        downloadPopularMovies()
-        downloadNowShowingMovies()
-
-        //Create dataSource and reload once all the movie types have finished downloading
-        dispatchGroup.notify(queue: .main) {
-            self.createDataSource()
-            self.reloadData()
-        }
-        
+        viewModel.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in
+                self?.updateAndCreateDatasource()
+            }.store(in: &cancellables)
     }
 
     // MARK: Methods
@@ -66,63 +57,24 @@ final class MediaCVC: UICollectionViewController {
     }
 
     //MARK: Dark mode ui adjustments: https://developer.apple.com/documentation/xcode/supporting_dark_mode_in_your_interface
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-    }
+//    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+//    }
 
     private func setupSearchButton() {
         view.addSubview(searchBtn)
         searchBtn.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-            searchBtn.bottomAnchor.constraint(equalTo: self.collectionView.bottomAnchor, constant: -25),
-            searchBtn.trailingAnchor.constraint(equalTo: self.collectionView.trailingAnchor,constant: -12),
+            searchBtn.bottomAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: -25),
+            searchBtn.trailingAnchor.constraint(equalTo: collectionView.trailingAnchor,constant: -12),
             searchBtn.widthAnchor.constraint(equalToConstant: 55),
             searchBtn.heightAnchor.constraint(equalToConstant: 55),
         ])
     }
 
-    private func downloadUpcomingMovies() {
-        dispatchGroup.enter()
-        tmdbManager.tmdbRequest(UpcomingResults.self, endPoint: .getUpcoming) { [weak self] (result) in
-            defer { self?.dispatchGroup.leave() }
-
-            switch result {
-            case .success(let result):
-                self?.upcomingMovies = result.results
-            case .failure(let error):
-                print("Upcoming error: \(error.errorMessage)")
-            }
-        }
-    }
-
-    private func downloadPopularMovies() {
-        //MARK: Retrieve Popular Movies
-        dispatchGroup.enter()
-        tmdbManager.tmdbRequest(PopularResults.self, endPoint: .getPopular) { [weak self] result in
-            defer { self?.dispatchGroup.leave() }
-
-            switch result {
-            case .success(let result):
-                self?.popularMovies = result.results
-            case .failure(let error):
-                print("Upcoming error: \(error.errorMessage)")
-            }
-        }
-    }
-
-    private func downloadNowShowingMovies() {
-        //MARK: Retrieve Now Playing Movies
-        dispatchGroup.enter()
-        tmdbManager.tmdbRequest(NowPlayingResults.self, endPoint: .getNowPlaying) { [weak self] result in
-            defer { self?.dispatchGroup.leave() }
-
-            switch result {
-            case .success(let result):
-                self?.nowPlayingMovies = result.results
-            case .failure(let error):
-                print("Upcoming error: \(error.errorMessage)")
-            }
-        }
+    private func updateAndCreateDatasource() {
+        createDataSource()
+        reloadData()
     }
 
     //MARK: createDataSource
@@ -151,19 +103,11 @@ final class MediaCVC: UICollectionViewController {
     }
 
     private func reloadData() {
-        //MovieStatus being the section object and Movie being the type of objects being supplied
         var snapshot = NSDiffableDataSourceSnapshot<MovieStatus, Movie>()
         snapshot.appendSections(movieStatues)
-
-        guard let upcomingMovies = upcomingMovies?.sorted(by: { $0.releaseDateObject! > $1.releaseDateObject! }) else { return }
-        snapshot.appendItems(upcomingMovies, toSection: .upcoming)
-
-        guard let popularMovies = popularMovies?.sorted(by: { $0.releaseDateObject! > $1.releaseDateObject! }) else { return }
-        snapshot.appendItems(popularMovies, toSection: .popular)
-
-        guard let nowPlayingMovies = nowPlayingMovies?.sorted(by: { $0.releaseDateObject! > $1.releaseDateObject! }) else { return }
-        snapshot.appendItems(nowPlayingMovies, toSection: .nowPlaying)
-
+        snapshot.appendItems(viewModel.upcomingMovies, toSection: .upcoming)
+        snapshot.appendItems(viewModel.popularMovies, toSection: .popular)
+        snapshot.appendItems(viewModel.nowPlayingMovies, toSection: .nowPlaying)
         dataSource?.apply(snapshot)
     }
 
@@ -179,7 +123,7 @@ final class MediaCVC: UICollectionViewController {
         layout.configuration = config
         return layout
     }
-    
+
     private func createSections(using section: MovieStatus) -> NSCollectionLayoutSection {
         let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1))  //full height and width of parent, group
 

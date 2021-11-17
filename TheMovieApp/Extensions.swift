@@ -63,7 +63,14 @@ extension UIViewController {
 }
 
 //MARK: UICollectionViewCell
-extension UICollectionViewCell{
+extension UICollectionViewCell {
+    class var identifier: String {
+        return String(describing: self)
+    }
+}
+
+//MARK: UITableViewCell
+extension UITableViewCell {
     class var identifier: String {
         return String(describing: self)
     }
