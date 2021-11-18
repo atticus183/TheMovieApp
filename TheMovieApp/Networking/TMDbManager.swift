@@ -9,21 +9,18 @@
 import Foundation
 import UIKit
 
+final class TMDbManager {
 
-
-class TMDbManager {
-    //    var movie: Movie?
-    
     let apiKey = TMdbAPIKey.KEY
-    
+
     private let baseURL = "https://api.themoviedb.org/3/"
     static let imgBaseURL = "https://image.tmdb.org/t/p/"
-    
+
     enum TMDbErr: Error {
         case badURL
         case badResponse(Int)
         case failureToDecodeJSON
-        
+
         var errorMessage: String {
             switch self {
             case .badURL:
@@ -35,30 +32,28 @@ class TMDbManager {
             }
         }
     }
-    
+
     func tmdbRequest<T: Codable>(_ type: T.Type, endPoint: EndPoint, completion: @escaping (Result<T, TMDbErr>) -> Void) {
         //Create URL string
         let urlString = baseURL + endPoint.path + "?api_key=\(apiKey)&language=en-US"
-        
-        print("Request URL String: \(urlString)")
-        
+
         URLSession.shared.dataTask(with: URL(string: urlString)!) { (data, response, error) in
             if let _ = error {
                 completion(.failure(.badURL))
             }
-            
+
             if let response = response as? HTTPURLResponse {
                 if 400...499 ~= response.statusCode {
                     completion(.failure(.badResponse(response.statusCode)))
                     return
                 }
             }
-            
+
             if let data = data {
                 //MARK: Decode JSON
                 let jsonDecoder = JSONDecoder()
                 jsonDecoder.keyDecodingStrategy = .convertFromSnakeCase
-                
+
                 do {
                     let decodedJSON = try jsonDecoder.decode(T.self, from: data)
                     completion(.success(decodedJSON))
@@ -68,26 +63,25 @@ class TMDbManager {
             }
         }.resume()
     }
-    
+
     //API - https://developers.themoviedb.org/3/search/search-movies
     func searchForMovie(with searchText: String, completion: @escaping (Result<MovieSearchResults, TMDbErr>) -> Void) {
         let cleanedSearchText = searchText.lowercased().replacingOccurrences(of: " ", with: "%20")
         let url = URL(string: "https://api.themoviedb.org/3/search/movie?api_key=\(apiKey)&language=en-US&query=\(cleanedSearchText)&page=1&include_adult=false")
-        
+
         URLSession.shared.dataTask(with: url!) { (data, response, error) in
             if let _ = error {
                 completion(.failure(.badURL))
             }
-            
+
             if let response = response as? HTTPURLResponse {
                 if 400...499 ~= response.statusCode {
                     completion(.failure(.badResponse(response.statusCode)))
                     return
                 }
             }
-            
+
             if let data = data {
-                //MARK: Decode JSON
                 let jsonDecoder = JSONDecoder()
                 jsonDecoder.keyDecodingStrategy = .convertFromSnakeCase
                 
@@ -100,7 +94,7 @@ class TMDbManager {
             }
         }.resume()
     }
-    
+
     enum EndPoint {
         case getDetails(String)
         case getReleaseDates(String)
@@ -109,7 +103,7 @@ class TMDbManager {
         case getPopular
         case getTopRated
         case getUpcoming
-        
+
         var path: String {
             switch self {
             case .getDetails(let id):
@@ -129,8 +123,7 @@ class TMDbManager {
             }
         }
     }
-    
-    
+
     //MARK: Generate image url string
     //Kingfisher takes a string
     enum ImgSize: String  {
@@ -138,7 +131,7 @@ class TMDbManager {
         case backdropW780
         case backdropW1280
         case backdropOriginal
-        
+
         case logoW45
         case logoW92
         case logoW154
@@ -146,14 +139,14 @@ class TMDbManager {
         case logoW300
         case logoW500
         case logoOriginal
-        
+
         case posterW92
         case posterW154
         case posterW342
         case posterW500
         case posterW780
         case posterOriginal
-        
+
         var sizeString: String {
             switch self {
             case .backdropW300:
@@ -193,6 +186,4 @@ class TMDbManager {
             }
         }
     }
-    
 }
-
